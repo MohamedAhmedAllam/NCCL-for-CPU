@@ -8,11 +8,14 @@ CXXFLAGS = -O2 -std=c++11
 
 # Include and Library Paths
 CUDA_HOME = /usr/local/cuda
-NCCL_HOME = /media/mohamed/ext_vol1/Learning/NCCL/code/nccl/build
+#NCCL_HOME = /media/mohamed/ext_vol1/Learning/NCCL/code/nccl/build
 MPI_HOME = /usr/lib/x86_64-linux-gnu/openmpi/include
 
-INCLUDES = -I$(CUDA_HOME)/include -I$(NCCL_HOME)/include -I$(MPI_HOME) -I./include
-LIBS = -L$(CUDA_HOME)/lib64 -L$(NCCL_HOME)/lib -lnccl -lcudart -lmpi_cxx -lmpi
+#INCLUDES = -I$(CUDA_HOME)/include -I$(NCCL_HOME)/include -I$(MPI_HOME) -I./include
+#LIBS = -L$(CUDA_HOME)/lib64 -L$(NCCL_HOME)/lib -lnccl -lcudart -lmpi_cxx -lmpi
+
+INCLUDES = -I$(CUDA_HOME)/include -I$(MPI_HOME) -I./include
+LIBS = -L$(CUDA_HOME)/lib64 -lcudart -lmpi_cxx -lmpi
 
 # Target executable
 TARGET = nccl_allreduce_example

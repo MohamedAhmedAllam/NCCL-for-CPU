@@ -1,6 +1,6 @@
 #include <stdio.h>
 //#include "cuda_runtime.h"
-//#include "nccl.h"
+#include "nccl.h"
 #include "cuda_wrapper.h"
 #include "mpi.h"
 #include <unistd.h>
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
      if (hostHashs[p] == hostHashs[myRank]) localRank++;
   }
 
-  int id;
+  int id = myRank;
   //ncclUniqueId id;
   //ncclComm_t comm;
   float *sendbuff, *recvbuff;
@@ -97,10 +97,10 @@ int main(int argc, char* argv[])
 
 
   //picking a GPU based on localRank, allocate device buffers
-  //CUDACHECK(cudaSetDevice(localRank));
+  //CUDACHECK(cudaSetDevice(localRank));  //How can I correctly implement this
   CUDACHECK(cudaMalloc(&sendbuff, size * sizeof(float)));
   CUDACHECK(cudaMalloc(&recvbuff, size * sizeof(float)));
-  //CUDACHECK(cudaStreamCreate(&s));
+  CUDACHECK(cudaStreamCreate(&s));
 
   /*
   //initializing NCCL
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
   NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum,
         comm, s));
 
-
+  */
   //completing NCCL operation by synchronizing on the CUDA stream
   CUDACHECK(cudaStreamSynchronize(s));
 
@@ -122,16 +122,13 @@ int main(int argc, char* argv[])
 
 
   //finalizing NCCL
-  ncclCommDestroy(comm);
-
-
-  */
+  //ncclCommDestroy(comm);
 
    //finalizing MPI
   MPICHECK(MPI_Finalize());
 
 
   printf("[MPI Rank %d] Success \n", myRank);
-  
+
   return 0;
 }
