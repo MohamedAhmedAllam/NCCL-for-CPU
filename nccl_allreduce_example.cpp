@@ -100,6 +100,11 @@ int main(int argc, char* argv[])
   CUDACHECK(cudaMalloc(&sendbuff, size * sizeof(float)));
   CUDACHECK(cudaMalloc(&recvbuff, size * sizeof(float)));
   CUDACHECK(cudaStreamCreate(&s));
+  
+  for (int i=0; i<size;i++){
+    sendbuff[i] = (float)myRank;
+  }
+  printf("[MPI Rank %d] Initate: %.2f, %.2f \n", myRank, sendbuff[0], sendbuff[size-1]);
 
   
   //initializing NCCL
@@ -115,6 +120,8 @@ int main(int argc, char* argv[])
   CUDACHECK(cudaStreamSynchronize(s));
 
 
+  printf("[MPI Rank %d] Success: Received %.2f, %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
+
   //free device buffers
   CUDACHECK(cudaFree(sendbuff));
   CUDACHECK(cudaFree(recvbuff));
@@ -125,9 +132,6 @@ int main(int argc, char* argv[])
 
    //finalizing MPI
   MPICHECK(MPI_Finalize());
-
-
-  printf("[MPI Rank %d] Success \n", myRank);
 
   return 0;
 }

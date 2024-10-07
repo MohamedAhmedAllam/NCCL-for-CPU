@@ -7,9 +7,9 @@ NCCLS functions:
 - ncclCommDestroy
 - ncclGroupStart
 - ncclGroupEnd
-- ncclAllReduce
-- map nccl reductions to mpi reductions
-- map nccl datatypes to mpi datatypes
+- ncclAllReduce                                     DONE but with ncclCommHack
+- map nccl reductions to mpi reductions             DONE
+- map nccl datatypes to mpi datatypes               DONE
 
 CUDA Functions:
 - cudaMalloc                DONE
@@ -20,9 +20,9 @@ CUDA Functions:
 - cudaGetDevice
 
 Type Conversion:
-- convert NCCL datatypes to MPI datatypes
+- convert NCCL datatypes to MPI datatypes           DONE
     - support for half float and bfloat ??
-- convert NCCL Ops to MPI Ops
+- convert NCCL Ops to MPI Ops                       DONE
     - MPI DOES NOT SUPPORT AVERAGE
 - convert NCCL errortypes to mpi error types
 
