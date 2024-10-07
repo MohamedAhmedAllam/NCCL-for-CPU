@@ -1,0 +1,30 @@
+TODOs:
+
+NCCLS functions:
+- ncclGetUniqueId
+- ncclCommInitRank
+- ncclCommInitAll
+- ncclCommDestroy
+- ncclGroupStart
+- ncclGroupEnd
+- ncclAllReduce
+- map nccl reductions to mpi reductions
+- map nccl datatypes to mpi datatypes
+
+CUDA Functions:
+- cudaMalloc                DONE
+- cudaFree                  DONE
+- cudaStreamCreate          DONE PARTIALLY
+- cudaStreamSynchronize     DONE PARTIALLY
+- cudaMemSet
+- cudaGetDevice
+
+Type Conversion:
+- convert NCCL datatypes to MPI datatypes
+    - support for half float and bfloat ??
+- convert NCCL Ops to MPI Ops
+    - MPI DOES NOT SUPPORT AVERAGE
+- convert NCCL errortypes to mpi error types
+
+Asynchronousity:
+- use asynchronous MPI reduce calls
