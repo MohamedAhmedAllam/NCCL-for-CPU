@@ -84,9 +84,8 @@ int main(int argc, char* argv[])
      if (hostHashs[p] == hostHashs[myRank]) localRank++;
   }
 
-  int id = myRank;
-  //ncclUniqueId id;
-  //ncclComm_t comm;
+  ncclUniqueId id;
+  ncclComm_t comm;
   float *sendbuff, *recvbuff;
   cudaStream_t s;
 
@@ -97,21 +96,21 @@ int main(int argc, char* argv[])
 
 
   //picking a GPU based on localRank, allocate device buffers
-  //CUDACHECK(cudaSetDevice(localRank));  //How can I correctly implement this
+  //CUDACHECK(cudaSetDevice(localRank));  //How can I correctly implement this?
   CUDACHECK(cudaMalloc(&sendbuff, size * sizeof(float)));
   CUDACHECK(cudaMalloc(&recvbuff, size * sizeof(float)));
   CUDACHECK(cudaStreamCreate(&s));
 
-  /*
+  
   //initializing NCCL
-  NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
+  //NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
 
 
   //communicating using NCCL
-  NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum,
-        comm, s));
+  //using MPI_COMM_WORLD temporarily
+  NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum, MPI_COMM_WORLD, s));
 
-  */
+  
   //completing NCCL operation by synchronizing on the CUDA stream
   CUDACHECK(cudaStreamSynchronize(s));
 

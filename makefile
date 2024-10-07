@@ -21,7 +21,7 @@ LIBS = -L$(CUDA_HOME)/lib64 -lcudart -lmpi_cxx -lmpi
 TARGET = nccl_allreduce_example
 
 # Source files
-SRCS = nccl_allreduce_example.cpp cuda_wrapper.cpp
+SRCS = nccl_allreduce_example.cpp cuda_wrapper.cpp nccl.cpp
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)

@@ -9,6 +9,7 @@
 
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
+#include "mpi.h"
 #if CUDART_VERSION >= 11000
 #include <cuda_bf16.h>
 #endif
@@ -337,7 +338,7 @@ ncclResult_t pncclBroadcast(const void* sendbuff, void* recvbuff, size_t count, 
  * In-place operation will happen if sendbuff == recvbuff.
  */
 ncclResult_t  ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
-    ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream);
+    ncclDataType_t datatype, ncclRedOp_t op, MPI_Comm comm, cudaStream_t stream);
 ncclResult_t pncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
     ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream);
 
