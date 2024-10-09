@@ -1,13 +1,10 @@
+#include "comm.h"
 #include "nccl.h"
-
-//#include <cstdlib>
+#include <cstdlib>
 //#include <cstring>
 //#include <cstdio>
 #include "mpi.h"
 
-
-#include "nccl.h"
-#include "mpi.h"
 
 // COPIED from original nccl to map erros strings
 const char* ncclGetErrorString(ncclResult_t code) {
@@ -75,6 +72,38 @@ MPI_Op getMpiRedOp(ncclRedOp_t op) {
             // Handle unknown reduction operations
             return MPI_OP_NULL;
     }
+}
+
+// Function to initialize ncclComm_t
+ncclResult_t ncclCommInitRank(ncclComm_t* newcomm, int nranks, ncclUniqueId commId, int myrank) {
+    //TODO add checks & error handles
+    *newcomm = new struct ncclComm;
+    //(*newcomm)->mpiComm = new MPI_Comm; 
+
+    MPI_Group world_group;
+    MPI_Comm_group(MPI_COMM_WORLD, &world_group);
+
+    MPI_Comm_create(MPI_COMM_WORLD, world_group,&((*newcomm)->mpiComm));
+    (*newcomm)->d = 1; // Initialize additional fields
+
+    free(world_group);
+
+    return ncclSuccess;
+
+    //DO I NEED TO FREE THE GROUP HERE?
+}
+
+ncclResult_t ncclCommDestroy(ncclComm_t comm) {
+    if (comm == nullptr) {
+        return ncclInvalidArgument;
+    }
+    int res = MPI_Comm_free(&(comm->mpiComm)) != MPI_SUCCESS;
+    if (res != MPI_SUCCESS){
+        return ncclSystemError;
+    }
+    //delete comm->mpiComm; // Delete the allocated MPI_Comm pointer
+    delete comm;          // Delete the ncclComm structure
+    return ncclSuccess;
 }
 
 

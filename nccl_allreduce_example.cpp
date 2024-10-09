@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
 
   
   //initializing NCCL
-  //NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
+  NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
 
 
   //communicating using NCCL
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
 
 
   //finalizing NCCL
-  //ncclCommDestroy(comm);
+  ncclCommDestroy(comm);
 
    //finalizing MPI
   MPICHECK(MPI_Finalize());

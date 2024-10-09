@@ -1,3 +1,6 @@
+GUIDLINES:
+- Avoid modification of nccl.h
+
 TODOs:
 
 NCCLS functions:
