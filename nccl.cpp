@@ -108,7 +108,7 @@ ncclResult_t ncclCommDestroy(ncclComm_t comm) {
 
 
 ncclResult_t  ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
-    ncclDataType_t datatype, ncclRedOp_t op, MPI_Comm comm, cudaStream_t stream){
+    ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream){
     
     MPI_Datatype datatype_mpi = getMpiDataType(datatype);
     if (datatype_mpi == MPI_DATATYPE_NULL){
@@ -120,7 +120,7 @@ ncclResult_t  ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
         return ncclInvalidArgument;  // Sure of this ? it should return an NCCL return
     }
 
-    int res = MPI_Allreduce(sendbuff, recvbuff, count, datatype_mpi, op_mpi, comm);
+    int res = MPI_Allreduce(sendbuff, recvbuff, count, datatype_mpi, op_mpi, comm->mpiComm);
     if (res != MPI_SUCCESS){
         return ncclSystemError;
     }

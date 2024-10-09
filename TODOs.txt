@@ -1,16 +1,17 @@
-GUIDLINES:
+GUIDELINES:
 - Avoid modification of nccl.h
 
 TODOs:
 
 NCCLS functions:
 - ncclGetUniqueId
-- ncclCommInitRank
+- ncclCommInitRank                                  Done temp
+    - Needs to actually group chosen ranks into new Comm
 - ncclCommInitAll
-- ncclCommDestroy
+- ncclCommDestroy                                   Done temp
 - ncclGroupStart
 - ncclGroupEnd
-- ncclAllReduce                                     DONE but with ncclCommHack
+- ncclAllReduce                                     DONE
 - map nccl reductions to mpi reductions             DONE
 - map nccl datatypes to mpi datatypes               DONE
 
@@ -31,3 +32,6 @@ Type Conversion:
 
 Asynchronousity:
 - use asynchronous MPI reduce calls
+
+MISC
+- Analyze Memory Leaks

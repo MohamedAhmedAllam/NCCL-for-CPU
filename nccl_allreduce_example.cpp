@@ -113,8 +113,7 @@ int main(int argc, char* argv[])
 
   //communicating using NCCL
   //using MPI_COMM_WORLD temporarily
-  NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum, MPI_COMM_WORLD, s));
-
+  NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum, comm, s));
   
   //completing NCCL operation by synchronizing on the CUDA stream
   CUDACHECK(cudaStreamSynchronize(s));
