@@ -1,7 +1,7 @@
+// nccl_allreduce_example.cpp
 #include <stdio.h>
-//#include "cuda_runtime.h"
-#include "nccl.h"
 #include "cuda_wrapper.h"
+#include "nccl.h"
 #include "mpi.h"
 #include <unistd.h>
 #include <stdint.h>
@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
   for (int i=0; i<size;i++){
     sendbuff[i] = (float)myRank;
   }
-  printf("[MPI Rank %d] Initate: %.2f, %.2f \n", myRank, sendbuff[0], sendbuff[size-1]);
+  printf("[MPI Rank %d] Initiate ---> Send buffer content: First = %.2f, Last = %.2f \n", myRank, sendbuff[0], sendbuff[size-1]);
 
   
   //initializing NCCL
@@ -112,14 +112,19 @@ int main(int argc, char* argv[])
 
 
   //communicating using NCCL
-  //using MPI_COMM_WORLD temporarily
-  NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum, comm, s));
+  NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclSum, comm, s)); //SUM
+  //NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclMin, comm, s)); //MIN
+  //NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclMax, comm, s)); //MAX
+
+
+
+
   
   //completing NCCL operation by synchronizing on the CUDA stream
   CUDACHECK(cudaStreamSynchronize(s));
 
 
-  printf("[MPI Rank %d] Success: Received %.2f, %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
+  printf("[MPI Rank %d] Success: ---> Recv buffer content: First = %.2f, Last = %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
 
   //free device buffers
   CUDACHECK(cudaFree(sendbuff));
