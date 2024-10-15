@@ -126,4 +126,22 @@ ncclResult_t  ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
     }
 
     return ncclSuccess;
-}
+
+    }
+
+ncclResult_t ncclAllGather(const void* sendbuff, void* recvbuff, size_t sendcount,
+    ncclDataType_t datatype, ncclComm_t comm, cudaStream_t stream){
+
+    MPI_Datatype datatype_mpi = getMpiDataType(datatype);
+    if (datatype_mpi == MPI_DATATYPE_NULL){
+        return ncclInvalidArgument;  // Sure of this ? it should return an NCCL return
+    }
+
+    int res = MPI_Allgather(sendbuff, sendcount, datatype_mpi, recvbuff, sendcount, datatype_mpi, comm->mpiComm);
+    if (res != MPI_SUCCESS){
+        return ncclSystemError;
+    }
+
+    return ncclSuccess;
+
+    }

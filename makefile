@@ -18,10 +18,10 @@ INCLUDES = -I$(CUDA_HOME)/include -I$(MPI_HOME) -I./include
 LIBS = -L$(CUDA_HOME)/lib64 -lcudart -lmpi_cxx -lmpi
 
 # Target executable
-TARGET = nccl_allreduce_example
+TARGET = nccl_allgather_example
 
 # Source files
-SRCS = nccl_allreduce_example.cpp cuda_wrapper.cpp nccl.cpp
+SRCS = nccl_allgather_example.cpp cuda_wrapper.cpp nccl.cpp
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)
