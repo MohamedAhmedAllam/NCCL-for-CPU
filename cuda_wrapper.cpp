@@ -32,19 +32,22 @@ cudaError_t cudaFree(void *devPtr){
 }
 
 //Wrapper for Cuda Stream Creation
-cudaError_t cudaStreamCreate(cudaStream_t *stream){
+cudaError_t cudaStreamCreate(cudaStream_x *stream){
     if (stream == nullptr){
         return cudaErrorInvalidValue;
     }
 
-    *stream = nullptr;  //Not sure of this but just in case
+    stream->request = new MPI_Request;
+
+    //*stream = nullptr;  //Not sure of this but just in case
     return cudaSuccess;
 
 }
 
 //Wrapper for Cuda Stream Synchronization
-cudaError_t cudaStreamSynchronize(cudaStream_t stream){
+cudaError_t cudaStreamSynchronize(cudaStream_x stream){
     //currently no stream to synchronize on
+    MPI_Wait(stream.request, NULL );
     return cudaSuccess;
 }
 

@@ -34,7 +34,7 @@
     exit(EXIT_FAILURE);                             \
   }                                                 \
 } while(0)
-
+/*
 extern "C" {
     ncclResult_t ncclCommInitRank(ncclComm_t* comm, int nranks, ncclUniqueId commId, int myrank);
     ncclResult_t ncclCommDestroy(ncclComm_t comm);
@@ -43,6 +43,7 @@ extern "C" {
                                cudaStream_t stream);
     int getCommD(ncclComm_t comm);
 }
+*/
 
 static uint64_t getHostHash(const char* string) {
   // Based on DJB2a, result = result * 33 ^ char
@@ -88,7 +89,7 @@ int main(int argc, char* argv[])
   ncclUniqueId id;
   ncclComm_t comm;
   float *sendbuff, *recvbuff;
-  cudaStream_t s;
+  cudaStream_x s;
 
   // Get NCCL unique ID at rank 0 and broadcast it to all others
   //if (myRank == 0) {NCCLCHECK(ncclGetUniqueId(&id));}
@@ -111,6 +112,12 @@ int main(int argc, char* argv[])
 
   // Perform AllGather using the NCCL wrapper (internally uses MPI_Allgather)
   NCCLCHECK(ncclAllGather((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, comm, s));
+
+  printf("[MPI Rank %d] Success: ", myRank);
+  for (int i=0; i<nRanks; i++){
+    printf("PreSync Elem No.%d = %.1f & %.1f || ", i, recvbuff[i*size] , recvbuff[(i+1)*size-1]); // Assign unique values per rank
+  }
+  printf("\n");
 
   // Completing NCCL operation by synchronizing on the CUDA stream
   CUDACHECK(cudaStreamSynchronize(s));

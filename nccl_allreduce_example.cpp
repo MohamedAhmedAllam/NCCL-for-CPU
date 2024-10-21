@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
   ncclUniqueId id;
   ncclComm_t comm;
   float *sendbuff, *recvbuff;
-  cudaStream_t s;
+  cudaStream_x s;
 
 
   //get NCCL unique ID at rank 0 and broadcast it to all others
@@ -116,6 +116,7 @@ int main(int argc, char* argv[])
   //NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclMin, comm, s)); //MIN
   //NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclMax, comm, s)); //MAX
 
+  printf("[MPI Rank %d] PreSync: ---> Recv buffer content: First = %.2f, Last = %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
 
 
 

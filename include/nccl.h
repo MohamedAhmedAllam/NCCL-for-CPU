@@ -7,6 +7,7 @@
 #ifndef NCCL_H_
 #define NCCL_H_
 
+#include "cuda_wrapper.h"
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
 #include "mpi.h"
@@ -338,7 +339,7 @@ ncclResult_t pncclBroadcast(const void* sendbuff, void* recvbuff, size_t count, 
  * In-place operation will happen if sendbuff == recvbuff.
  */
 ncclResult_t  ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
-    ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream);
+    ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_x stream);
 ncclResult_t pncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
     ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, cudaStream_t stream);
 
@@ -371,7 +372,7 @@ ncclResult_t pncclReduceScatter(const void* sendbuff, void* recvbuff,
  * In-place operations will happen if sendbuff == recvbuff + rank * sendcount.
  */
 ncclResult_t  ncclAllGather(const void* sendbuff, void* recvbuff, size_t sendcount,
-    ncclDataType_t datatype, ncclComm_t comm, cudaStream_t stream);
+    ncclDataType_t datatype, ncclComm_t comm, cudaStream_x stream);
 ncclResult_t pncclAllGather(const void* sendbuff, void* recvbuff, size_t sendcount,
     ncclDataType_t datatype, ncclComm_t comm, cudaStream_t stream);
 
