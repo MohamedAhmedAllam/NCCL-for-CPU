@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
   //CUDACHECK(cudaSetDevice(localRank));  
   
   //CUDACHECK(cudaMalloc(&sendbuff, size * sizeof(float)));
-  CUDACHECK(cudaMalloc(&recvbuff, size * nRanks * sizeof(float)));
+  CUDACHECK(cudaMalloc(&recvbuff, size * sizeof(float)));
   CUDACHECK(cudaStreamCreate(&s));
   
   // Initialize send buffer
@@ -194,29 +194,25 @@ int main(int argc, char* argv[])
 
   }
   */
-  printf("[MPI Rank %d] Initiate: %.2f, %.2f \n", myRank, d_c[0], d_c[size-1]);
+  printf("[MPI Rank %d] Initiate ---> Send buffer content: First = %.2f, Last = %.2f \n", myRank, d_c[0], d_c[size-1]);
 
-  // Initialize custom NCCL communicator with embedded MPI_Comm
+  
+  //initializing NCCL
   NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
 
-  // Perform AllGather using the NCCL wrapper (internally uses MPI_Allgather)
-  NCCLCHECK(ncclAllGather((const void*)d_c, (void*)recvbuff, size, ncclFloat, comm, s));
 
-  printf("[MPI Rank %d] Success: ", myRank);
-  for (int i=0; i<nRanks; i++){
-    printf("PreSync Elem No.%d = %.1f & %.1f || ", i, recvbuff[i*size] , recvbuff[(i+1)*size-1]); // Assign unique values per rank
-  }
-  printf("\n");
+  //communicating using NCCL
+  NCCLCHECK(ncclAllReduce((const void*)d_c, (void*)recvbuff, size, ncclFloat, ncclSum, comm, s)); //SUM
+  //NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclMin, comm, s)); //MIN
+  //NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclMax, comm, s)); //MAX
 
-  // Completing NCCL operation by synchronizing on the CUDA stream
+  printf("[MPI Rank %d] PreSync: ---> Recv buffer content: First = %.2f, Last = %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
+
+  //completing NCCL operation by synchronizing on the CUDA stream
   CUDACHECK(cudaStreamSynchronize(s));
 
-  // Print received data
-  printf("[MPI Rank %d] Success: ", myRank);
-  for (int i=0; i<nRanks; i++){
-    printf("Received Elem No.%d = %.1f & %.1f || ", i, recvbuff[i*size] , recvbuff[(i+1)*size-1]); // Assign unique values per rank
-  }
-  printf("\n");
+
+  printf("[MPI Rank %d] Success: ---> Recv buffer content: First = %.2f, Last = %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
 
   // Free device buffers
   //CUDACHECK(cudaFree(sendbuff));

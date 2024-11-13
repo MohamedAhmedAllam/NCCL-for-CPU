@@ -1,0 +1,85 @@
+# Makefile for NCCL AllReduce Example with CUDA Wrappers
+
+# Compiler
+CXX = nvcc
+
+# Compiler Flags
+CXXFLAGS = -O2 -std=c++11
+
+# Include and Library Paths
+CUDA_HOME = /usr/local/cuda
+#NCCL_HOME = /media/mohamed/ext_vol1/Learning/NCCL/code/nccl/build
+MPI_HOME = /usr/lib/x86_64-linux-gnu/openmpi/include
+
+#INCLUDES = -I$(CUDA_HOME)/include -I$(NCCL_HOME)/include -I$(MPI_HOME) -I./include
+#LIBS = -L$(CUDA_HOME)/lib64 -L$(NCCL_HOME)/lib -lnccl -lcudart -lmpi_cxx -lmpi
+
+INCLUDES = -I$(CUDA_HOME)/include -I$(MPI_HOME) -I./include
+LIBS = -L$(CUDA_HOME)/lib64 -lcudart -lmpi_cxx -lmpi
+
+# Target executables
+EXAMPLES = mpi_allreduce_example1 mpi_allreduce_example2
+
+# Source files
+COMMON_SRCS = nccl.cpp cuda_wrapper.cpp
+ALLREDUCE_SRC = nccl_allreduce_example1.cpp
+BROADCAST_SRC = nccl_allreduce_example2.cpp
+
+# Object files
+COMMON_OBJS = $(COMMON_SRCS:.cpp=.o)
+ALLREDUCE_OBJ = $(ALLREDUCE_SRC:.cpp=.o)
+BROADCAST_OBJ = $(BROADCAST_SRC:.cpp=.o)
+
+# Default target
+all: $(EXAMPLES)
+
+# Compile common object files
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
+
+# Define the AllReduce example executable
+mpi_allreduce_example1: $(ALLREDUCE_OBJ) $(COMMON_OBJS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $(ALLREDUCE_OBJ) $(COMMON_OBJS) $(LIBS)
+
+# Define the Broadcast example executable
+mpi_allreduce_example2: $(BROADCAST_OBJ) $(COMMON_OBJS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $@ $(BROADCAST_OBJ) $(COMMON_OBJS) $(LIBS)
+
+# Clean up
+clean:
+	rm -f $(EXAMPLES) src/*.o
+
+# Run All Examples
+# Usage: make run_all NP=4
+run_all: $(EXAMPLES)
+	@if [ -z "$(NP)" ]; then \
+		echo "Please specify the number of processes. Example:"; \
+		echo "make run_all NP=4"; \
+		exit 1; \
+	fi
+	for exe in $(EXAMPLES); do \
+		echo "Running $$exe with NP=$(NP)"; \
+		mpirun -np $(NP) ./$$exe & \
+	done
+	wait
+
+# Run a Specific Example
+# Usage: make run_example EXE=mpi_allreduce_example NP=4
+run_example: $(EXAMPLES)
+	@if [ -z "$(EXE)" ]; then \
+		echo "Please specify the example to run. Example:"; \
+		echo "make run_example EXE=mpi_allreduce_example NP=4"; \
+		exit 1; \
+	fi
+	@if [[ ! " $(EXAMPLES) " =~ " $(EXE) " ]]; then \
+		echo "Invalid example specified. Available examples:"; \
+		echo "$(EXAMPLES)"; \
+		exit 1; \
+	fi
+	@if [ -z "$(NP)" ]; then \
+		echo "Please specify the number of processes. Example:"; \
+		echo "make run_example EXE=mpi_allreduce_example NP=4"; \
+		exit 1; \
+	fi
+	echo "Running $(EXE) with NP=$(NP)"
+	mpirun -np $(NP) ./$(EXE)
