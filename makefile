@@ -1,7 +1,7 @@
 # Makefile for NCCL AllReduce Example with CUDA Wrappers
 
 # Compiler
-CXX = nvcc
+CXX = clang++-14
 
 # Compiler Flags
 CXXFLAGS = -O2 -std=c++11
