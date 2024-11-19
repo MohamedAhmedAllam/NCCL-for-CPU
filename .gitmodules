@@ -1,0 +1,3 @@
+[submodule "CuPBoP"]
+	path = CuPBoP
+	url = https://github.com/MohamedAhmedAllam/CuPBoP.git
