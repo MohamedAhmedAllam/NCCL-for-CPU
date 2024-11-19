@@ -36,16 +36,6 @@
   }                                                 \
 } while(0)
 
-/*
-extern "C" {
-    ncclResult_t ncclCommInitRank(ncclComm_t* comm, int nranks, ncclUniqueId commId, int myrank);
-    ncclResult_t ncclCommDestroy(ncclComm_t comm);
-    ncclResult_t ncclAllGather(const void* sendbuff, void* recvbuff, size_t sendcount,
-                               ncclDataType_t datatype, ncclComm_t comm,
-                               cudaStream_t stream);
-    int getCommD(ncclComm_t comm);
-}
-*/
 
 static uint64_t getHostHash(const char* string) {
   // Based on DJB2a, result = result * 33 ^ char
@@ -174,7 +164,7 @@ int main(int argc, char* argv[])
   ncclComm_t comm;
   //float *sendbuff, *recvbuff;
   float *recvbuff;
-  cudaStream_x s;
+  cudaStream_t s;
 
   // Get NCCL unique ID at rank 0 and broadcast it to all others
   //if (myRank == 0) {NCCLCHECK(ncclGetUniqueId(&id));}
