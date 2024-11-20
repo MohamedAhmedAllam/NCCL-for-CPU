@@ -1,19 +1,26 @@
 #!/bin/bash
 
+export NCCLCPU_PATH=../..
 
-cd ../.. && export CuPBoP_PATH=`pwd`
-cd examples/nccl_trial
+export CuPBoP_PATH=$NCCLCPU_PATH/CuPBoP
 export LD_LIBRARY_PATH=$CuPBoP_PATH/build/runtime:$CuPBoP_PATH/build/runtime/threadPool:$LD_LIBRARY_PATH
 export CUDA_PATH=/usr/local/cuda
 
-CXX="clang++-14" && CXXFLAGS="-O2 -std=c++11" && CUDA_HOME="/usr/local/cuda" && MPI_HOME="/usr/lib/x86_64-linux-gnu/openmpi/include" && INCLUDES="-I$CUDA_HOME/include -I$MPI_HOME -I./include" && LIBS="-L$CUDA_HOME/lib64 -lcudart -lmpi_cxx -lmpi"
+CXX="clang++-14" && CXXFLAGS="-O2 -std=c++11"
+CUDA_HOME="/usr/local/cuda" 
+MPI_HOME="/usr/lib/x86_64-linux-gnu/openmpi/include"
 
-INCLUDES2="-I./include -I$MPI_HOME" && LIBS2="-lmpi_cxx -lmpi"
+INCLUDES="-I$CUDA_HOME/include -I$MPI_HOME -I$NCCLCPU_PATH/include"
+LIBS="-L$CUDA_HOME/lib64 -lcudart -lmpi_cxx -lmpi"
+
+INCLUDES2="-I$NCCLCPU_PATH/include -I$MPI_HOME"
+LIBS2="-lmpi_cxx -lmpi"
 
 
 # Compile the CUDA wrapper
+
 echo "Compiling cuda_wrapper.cpp..."
-$CXX $CXXFLAGS $INCLUDES -c cuda_wrapper.cpp -o cuda_wrapper.o
+$CXX $CXXFLAGS $INCLUDES -c $NCCLCPU_PATH/src/cuda_wrapper.cpp -o cuda_wrapper.o
 if [ $? -ne 0 ]; then
     echo "Failed to compile cuda_wrapper.cpp"
     exit 1
@@ -21,7 +28,7 @@ fi
 
 
 echo "Compiling nccl.cpp..."
-$CXX $CXXFLAGS $INCLUDES -c nccl.cpp -o nccl.o
+$CXX $CXXFLAGS $INCLUDES -c $NCCLCPU_PATH/src/nccl.cpp -o nccl.o
 if [ $? -ne 0 ]; then
     echo "Failed to compile  nccl.cpp"
     exit 1
@@ -31,7 +38,7 @@ fi
 # Compile nccl_trial.cu with clang++
 echo "Compiling nccl_trial.cu..."
 clang++-14 -std=c++11 -I../.. $INCLUDES2 --cuda-path=$CUDA_HOME --cuda-gpu-arch=sm_50 \
-    -L$CUDA_HOME/lib64 -save-temps -c nccl_trial.cu -lcudart_static -ldl -lrt -pthread || true
+    -L$CUDA_HOME/lib64 -save-temps -c nccl_trial.cu -lcudart_static -ldl -lrt -pthread -v || true
 
 # Translate kernel and host
 echo "Translating kernel and host..."
