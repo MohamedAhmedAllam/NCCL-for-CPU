@@ -1,4 +1,4 @@
-// nccl_allgather_example.cpp
+// nccl_allgather_example.cpp (Data Parallelism)
 #include <stdio.h>
 #include "nccl.h"
 #include "cuda_wrapper.h"
@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 
 
 #define MPICHECK(cmd) do {                          \
@@ -57,6 +58,7 @@ static void getHostName(char* hostname, int maxlen) {
 }
 
 const double epsilon = 1e-6;
+
 // CUDA kernel. Each thread takes care of one element of c
 __global__ void vecAdd(float *a, float *b, float *c, int n)
 {
@@ -68,83 +70,25 @@ __global__ void vecAdd(float *a, float *b, float *c, int n)
         c[id] = a[id] + b[id];
 }
 
+__global__ void forward_pass(float *x, float *w, float *y_pred,float N, int n){
+  
+}
+
+__global__ void backward_pass(float *x, float *w, float *y_pred, float *y_target, float *dw, int n){
+  
+}
 
 
 int main(int argc, char* argv[])
 {
 
-  int n = 100000;
+  int N = 1024; //BatchSize
+  int n = 1000; // weight layer
+  float lr = 0.01f;
 
-  // Host input vectors
-  float *h_a;
-  float *h_b;
-  //Host output vector
-  float *h_c;
-
-  // Device input vectors
-  float *d_a;
-  float *d_b;
-  //Device output vector
-  float *d_c;
-
-  // Size, in bytes, of each vector
-  size_t bytes = n*sizeof(float);
-
-  // Allocate memory for each vector on host
-  h_a = (float*)malloc(bytes);
-  h_b = (float*)malloc(bytes);
-  h_c = (float*)malloc(bytes);
-
-  // Allocate memory for each vector on GPU
-  cudaMalloc(&d_a, bytes);
-  cudaMalloc(&d_b, bytes);
-  cudaMalloc(&d_c, bytes);
-
-  int i;
-  // Initialize vectors on host
-  for( i = 0; i < n; i++ ) {
-      h_a[i] = sin(i)*sin(i);
-      h_b[i] = cos(i)*cos(i);
-  }
-
-  // Copy host vectors to device
-  cudaMemcpy( d_a, h_a, bytes, cudaMemcpyHostToDevice);
-  cudaMemcpy( d_b, h_b, bytes, cudaMemcpyHostToDevice);
-
-  int blockSize, gridSize;
-
-  // Number of threads in each thread block
-  blockSize = 1024;
-
-  // Number of thread blocks in grid
-  gridSize = (int)ceil((float)n/blockSize);
-
-  // Execute the kernel
-  vecAdd<<<gridSize, blockSize>>>(d_a, d_b, d_c, n);
-
-  // Copy array back to host
-  cudaMemcpy( h_c, d_c, bytes, cudaMemcpyDeviceToHost );
-
-  // Sum up vector c and print result divided by n, this should equal 1 within error
-  double sum = 0;
-  for(i=0; i<n; i++)
-      sum += h_c[i];
-  sum/=(float)n;
-  if(abs(sum-1.0)<epsilon)
-      printf("PASS\n");
-  else
-      printf("FAIL\n");
-
-
-  //END OF VECADD
-  ////////////////////////////////////////////////
-  
-  //int size = 32*1024*1024; // Number of elements to gather
-  int size = n;
-
+  //MPI initialization
   int myRank, nRanks, localRank = 0;
   
-  // Initializing MPI
   MPICHECK(MPI_Init(&argc, &argv));
   MPICHECK(MPI_Comm_rank(MPI_COMM_WORLD, &myRank));
   MPICHECK(MPI_Comm_size(MPI_COMM_WORLD, &nRanks));
@@ -162,8 +106,6 @@ int main(int argc, char* argv[])
   
   ncclUniqueId id;
   ncclComm_t comm;
-  //float *sendbuff, *recvbuff;
-  float *recvbuff;
   cudaStream_t s;
 
   // Get NCCL unique ID at rank 0 and broadcast it to all others
@@ -173,40 +115,78 @@ int main(int argc, char* argv[])
   // Picking a GPU based on localRank and allocating device buffers
   //CUDACHECK(cudaSetDevice(localRank));  
   
-  //CUDACHECK(cudaMalloc(&sendbuff, size * sizeof(float)));
-  CUDACHECK(cudaMalloc(&recvbuff, size * sizeof(float)));
   CUDACHECK(cudaStreamCreate(&s));
-  
-  // Initialize send buffer
-  /*
-  for (int i=0; i<size; i++){
-    sendbuff[i] = (float)(myRank); // Assign unique values per rank
-
-  }
-  */
-  printf("[MPI Rank %d] Initiate ---> Send buffer content: First = %.2f, Last = %.2f \n", myRank, d_c[0], d_c[size-1]);
-
   
   //initializing NCCL
   NCCLCHECK(ncclCommInitRank(&comm, nRanks, id, myRank));
 
 
-  //communicating using NCCL
-  NCCLCHECK(ncclAllReduce((const void*)d_c, (void*)recvbuff, size, ncclFloat, ncclSum, comm, s)); //SUM
-  //NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclMin, comm, s)); //MIN
-  //NCCLCHECK(ncclAllReduce((const void*)sendbuff, (void*)recvbuff, size, ncclFloat, ncclMax, comm, s)); //MAX
+  // Allocate Host Memory
+  float *h_x = (float*)malloc(N * n * sizeof(float));
+  float *h_w = (float*)malloc(n*sizeof(float));
+  float *h_y_target = (float*)malloc(N*sizeof(float));
 
-  printf("[MPI Rank %d] PreSync: ---> Recv buffer content: First = %.2f, Last = %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
+  // Initialize input data and weights
+  for (int i=0; i<N*n;i++){
+    h_x[i] = ((float)rand() / RAND_MAX) *2 - 1;
+  }
+  for (int i=0; i<n;i++){
+    h_w[i] = ((float)rand() / RAND_MAX) * 0.01f;
+  }
+  for (int i=0; i<N;i++){
+    h_y_target[i] = ((float)rand() / RAND_MAX) > 0.5 ? 1.0f : 0.0f;
+  }
 
-  //completing NCCL operation by synchronizing on the CUDA stream
-  CUDACHECK(cudaStreamSynchronize(s));
+  //Allocate device memory 
+  float *d_x, float *d_w, float *d_y_target, float *d_w_grad, float *d_y_pred;
+  CUDACHECK(cudaMalloc(&d_x), N*n*sizeof(float)); 
+  CUDACHECK(cudaMalloc(&d_w), n*sizeof(float)); 
+  CUDACHECK(cudaMalloc(&d_y_target), N*sizeof(float)); 
+  CUDACHECK(cudaMalloc(&d_w_grad), n*sizeof(float)); 
+  CUDACHECK(cudaMalloc(&d_y_pred), N*sizeof(float)); 
+
+  //copy data to device
+  CUDACHECK(cudaMemcpy(d_x, h_x, N*n*sizeof(float), cudaMemcpyHostToDevice));
+  CUDACHECK(cudaMemcpy(d_w, h_w, n*sizeof(float), cudaMemcpyHostToDevice));
+  CUDACHECK(cudaMemcpy(d_y_target, h_y_target, N*sizeof(float), cudaMemcpyHostToDevice));
 
 
-  printf("[MPI Rank %d] Success: ---> Recv buffer content: First = %.2f, Last = %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
+  int N_LOOPS = 1;    //No of training loops
+  int blockSize = 512;
+  int gridSize = (N+blocksize-1) / blockSize;
+
+  for (int tl=0; tl<N_LOOPS; tl++){
+    //Zero Gradients
+    CUDACHECK(cudaMemset(d_w_grad, 0, n*sizeof(float)));  
+
+    //ForwardPass & Synchronize
+    forward_pass<<gridSize, blockSize>>(d_x, d_w, d_y_target, N, n);
+    CUDACHECK(cudaGetLastError());
+
+    //BackwardPass & Synchronize
+    backward_pass<<gridSize, blockSize>>(d_x, d_w, d_y_target, d_y_pred, d_w_grad, N, n);
+    CUDACHECK(cudaGetLastError());
+
+
+    //Gradient Accumulation using NCCL
+    NCCLCHECK(ncclAllReduce((const void*)d_w_grad, (void*)d_w_grad, n, ncclFloat, ncclSum, comm, s)); //SUM
+    CUDACHECK(cudaStreamSynchronize(s));
+
+    //printf("[MPI Rank %d] Success: ---> gradient content: First = %.2f, Last = %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
+
+  }
 
   // Free device buffers
   //CUDACHECK(cudaFree(sendbuff));
-  CUDACHECK(cudaFree(recvbuff));
+  CUDACHECK(cudaFree(d_x));
+  CUDACHECK(cudaFree(d_w));
+  CUDACHECK(cudaFree(d_w_grad));
+  CUDACHECK(cudaFree(d_y_target));
+  CUDACHECK(cudaFree(d_y_pred));
+
+  free(h_x);
+  free(h_w);
+  free(h_y_target);
 
   // Finalize custom NCCL communicator
   NCCLCHECK(ncclCommDestroy(comm));
@@ -214,17 +194,6 @@ int main(int argc, char* argv[])
    // Finalizing MPI
   MPICHECK(MPI_Finalize());
   printf("FINALIZED\n");
-  
-
-  // Release device memory
-  cudaFree(d_a);
-  cudaFree(d_b);
-  cudaFree(d_c);
-
-  // Release host memory
-  free(h_a);
-  free(h_b);
-  free(h_c);
 
   return 0;
 }
