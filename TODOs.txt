@@ -1,5 +1,5 @@
 GUIDELINES:
-- Avoid modification of nccl.h
+- Avoid modification of nccl.h                      DONE
 
 TODOs:
 
@@ -18,10 +18,10 @@ NCCLS functions:
 CUDA Functions:
 - cudaMalloc                DONE
 - cudaFree                  DONE
-- cudaStreamCreate          DONE PARTIALLY
-- cudaStreamSynchronize     DONE PARTIALLY
-- cudaMemSet
-- cudaGetDevice
+- cudaStreamCreate          DONE 
+- cudaStreamSynchronize     DONE 
+- cudaMemSet                DONE
+- cudaGetDevice             DONE
 
 Type Conversion:
 - convert NCCL datatypes to MPI datatypes           DONE
@@ -31,7 +31,7 @@ Type Conversion:
 - convert NCCL errortypes to mpi error types
 
 Asynchronousity:
-- use asynchronous MPI reduce calls
+- use asynchronous MPI reduce calls                 DONE
 
 MISC
 - Analyze Memory Leaks

@@ -149,18 +149,22 @@ int main(int argc, char* argv[])
   // Allocate Host Memory
   float *h_x = (float*)malloc(N * n * sizeof(float));
   float *h_w = (float*)malloc(n*sizeof(float));
+  float *h_w_grad = (float*)malloc(n*sizeof(float));
   float *h_y_target = (float*)malloc(N*sizeof(float));
 
   // Initialize input data and weights
   //TODO: this should be done on a single process and shared with the others
-  for (int i=0; i<N*n;i++){
-    h_x[i] = ((float)rand() / RAND_MAX-1) *2 - 1;
-  }
+  
   for (int i=0; i<n;i++){
-    h_w[i] = ((float)rand() / RAND_MAX-1) * 0.01f;
+    h_w[i] = ((float)rand() / (float)RAND_MAX) * 0.01f; //fixed initial weights
   }
+  srand(time(NULL) + myRank); //ensures different values across process for different patches
+  for (int i=0; i<N*n;i++){
+    h_x[i] = ((float)rand() / (float)RAND_MAX) *2 - 1;
+  }
+
   for (int i=0; i<N;i++){
-    h_y_target[i] = ((float)rand() / RAND_MAX-1) > 0.5 ? 1.0f : 0.0f;
+    h_y_target[i] = ((float)rand() / (float)RAND_MAX) > 0.5 ? 1.0f : 0.0f;
   }
 
   //Allocate device memory 
@@ -199,14 +203,17 @@ int main(int argc, char* argv[])
     calc_grads<<<(n+blockSize-1) / blockSize, blockSize>>>(d_x, dldz, d_w_grad, N, n);
     CUDACHECK(cudaGetLastError());
 
-    printf("before: %.3f_%.3f\n", d_w_grad[0], d_w_grad[n-1]);
+    //for demo purposes only because I cannot printf on a device buffer
+    printf("[MPI Rank %d] Before AllReduce: ---> Gradient content: First = %.2f, Mid = %.2f, Last = %.2f \n", myRank, d_w_grad[0], d_w_grad[n/2], d_w_grad[n-1]);
     //Gradient Accumulation using NCCL
     NCCLCHECK(ncclAllReduce((const void*)d_w_grad, (void*)d_w_grad, n, ncclFloat, ncclSum, comm, s)); //SUM
     CUDACHECK(cudaStreamSynchronize(s));
 
-    printf("after: %.3f_%.3f\n", d_w_grad[0], d_w_grad[n-1]);
+    //printf("after: %.3f_%.3f\n", d_w_grad[0], d_w_grad[n-1]);
   }
 
+  CUDACHECK(cudaMemcpy(h_w_grad, d_w_grad, n*sizeof(float), cudaMemcpyDeviceToHost));
+  printf("[MPI Rank %d]  After AllReduce: ---> Gradient content: First = %.2f, Mid = %.2f, Last = %.2f \n", myRank, d_w_grad[0], d_w_grad[n/2], d_w_grad[n-1]);
   // Free device buffers
   //CUDACHECK(cudaFree(sendbuff));
   CUDACHECK(cudaFree(d_x));
@@ -219,6 +226,7 @@ int main(int argc, char* argv[])
 
   free(h_x);
   free(h_w);
+  free(h_w_grad);
   free(h_y_target);
 
   // Finalize custom NCCL communicator
@@ -226,7 +234,7 @@ int main(int argc, char* argv[])
   
    // Finalizing MPI
   MPICHECK(MPI_Finalize());
-  printf("FINALIZED\n");
+  printf("[MPI Rank %d] Finalized\n", myRank);
 
   return 0;
 }
