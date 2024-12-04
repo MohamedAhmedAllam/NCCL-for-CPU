@@ -70,14 +70,40 @@ __global__ void vecAdd(float *a, float *b, float *c, int n)
         c[id] = a[id] + b[id];
 }
 
-__global__ void forward_pass(float *x, float *w, float *y_pred,float N, int n){
+__global__ void forward_pass(float *x, float *w, float *y_pred,int N, int n){
+
+  int id = blockIdx.x*blockDim.x + threadIdx.x;
+  if (id < N){
+    float z = 0.0f;
+    for (int i=0; i<n; i++){
+      z += x[id*n+i]*w[i];
+    }
+
+    y_pred[id] = 1.0f / (1.0f+expf(-z));
+  }
   
 }
 
-__global__ void backward_pass(float *x, float *w, float *y_pred, float *y_target, float *dw, int n){
-  
+__global__ void backward_pass(float *y_pred, float *y_target, float *dldz, int N){
+  int id = blockIdx.x*blockDim.x + threadIdx.x;
+  if (id < N){
+   float dl_dy = 2.0f * (y_pred[id] - y_target[id]);  //RMSE
+   float dy_dz = y_pred[id] * (1.0f - y_pred[id]);
+
+   dldz[id] = dl_dy * dy_dz; // Gradient W.R.T wtx
+
+  }
 }
 
+__global__ void calc_grads(float *x, float *dldz, float *dw, int N, int n){
+  int id = blockIdx.x*blockDim.x + threadIdx.x;
+  if (id < n){
+    dw[id] = 0.0f;
+   for(int j=0; j<N; j++){
+      dw[id] += dldz[j] * x[j*n+id];
+   }
+  }
+}
 
 int main(int argc, char* argv[])
 {
@@ -127,23 +153,26 @@ int main(int argc, char* argv[])
   float *h_y_target = (float*)malloc(N*sizeof(float));
 
   // Initialize input data and weights
+  //TODO: this should be done on a single process and shared with the others
   for (int i=0; i<N*n;i++){
-    h_x[i] = ((float)rand() / RAND_MAX) *2 - 1;
+    h_x[i] = ((float)rand() / RAND_MAX-1) *2 - 1;
   }
   for (int i=0; i<n;i++){
-    h_w[i] = ((float)rand() / RAND_MAX) * 0.01f;
+    h_w[i] = ((float)rand() / RAND_MAX-1) * 0.01f;
   }
   for (int i=0; i<N;i++){
-    h_y_target[i] = ((float)rand() / RAND_MAX) > 0.5 ? 1.0f : 0.0f;
+    h_y_target[i] = ((float)rand() / RAND_MAX-1) > 0.5 ? 1.0f : 0.0f;
   }
 
   //Allocate device memory 
-  float *d_x, float *d_w, float *d_y_target, float *d_w_grad, float *d_y_pred;
-  CUDACHECK(cudaMalloc(&d_x), N*n*sizeof(float)); 
-  CUDACHECK(cudaMalloc(&d_w), n*sizeof(float)); 
-  CUDACHECK(cudaMalloc(&d_y_target), N*sizeof(float)); 
-  CUDACHECK(cudaMalloc(&d_w_grad), n*sizeof(float)); 
-  CUDACHECK(cudaMalloc(&d_y_pred), N*sizeof(float)); 
+  float *d_x, *d_w, *d_y_target, *d_w_grad, *d_y_pred, *dldz;
+  CUDACHECK(cudaMalloc(&d_x, N*n*sizeof(float))); 
+  CUDACHECK(cudaMalloc(&d_w, n*sizeof(float))); 
+  CUDACHECK(cudaMalloc(&d_y_target, N*sizeof(float))); 
+  CUDACHECK(cudaMalloc(&d_w_grad, n*sizeof(float))); 
+  CUDACHECK(cudaMalloc(&d_y_pred, N*sizeof(float)));
+  CUDACHECK(cudaMalloc(&dldz, N*sizeof(float))); 
+ 
 
   //copy data to device
   CUDACHECK(cudaMemcpy(d_x, h_x, N*n*sizeof(float), cudaMemcpyHostToDevice));
@@ -153,27 +182,30 @@ int main(int argc, char* argv[])
 
   int N_LOOPS = 1;    //No of training loops
   int blockSize = 512;
-  int gridSize = (N+blocksize-1) / blockSize;
+  int gridSize = (N+blockSize-1) / blockSize;
 
   for (int tl=0; tl<N_LOOPS; tl++){
     //Zero Gradients
     CUDACHECK(cudaMemset(d_w_grad, 0, n*sizeof(float)));  
 
     //ForwardPass & Synchronize
-    forward_pass<<gridSize, blockSize>>(d_x, d_w, d_y_target, N, n);
+    forward_pass<<<gridSize, blockSize>>>(d_x, d_w, d_y_pred, N, n);
     CUDACHECK(cudaGetLastError());
 
     //BackwardPass & Synchronize
-    backward_pass<<gridSize, blockSize>>(d_x, d_w, d_y_target, d_y_pred, d_w_grad, N, n);
+    backward_pass<<<gridSize, blockSize>>>(d_y_pred, d_y_target, dldz, N);
     CUDACHECK(cudaGetLastError());
 
+    //TODO Not optimal to loop over N in each kernel (done to avoid AddAtomic)
+    calc_grads<<<(n+blockSize-1) / blockSize, blockSize>>>(d_x, dldz, d_w_grad, N, n);
+    CUDACHECK(cudaGetLastError());
 
+    printf("before: %.3f_%.3f\n", d_w_grad[0], d_w_grad[n-1]);
     //Gradient Accumulation using NCCL
     NCCLCHECK(ncclAllReduce((const void*)d_w_grad, (void*)d_w_grad, n, ncclFloat, ncclSum, comm, s)); //SUM
     CUDACHECK(cudaStreamSynchronize(s));
 
-    //printf("[MPI Rank %d] Success: ---> gradient content: First = %.2f, Last = %.2f \n", myRank, recvbuff[0], recvbuff[size-1]);
-
+    printf("after: %.3f_%.3f\n", d_w_grad[0], d_w_grad[n-1]);
   }
 
   // Free device buffers
@@ -183,6 +215,8 @@ int main(int argc, char* argv[])
   CUDACHECK(cudaFree(d_w_grad));
   CUDACHECK(cudaFree(d_y_target));
   CUDACHECK(cudaFree(d_y_pred));
+  CUDACHECK(cudaFree(dldz));
+
 
   free(h_x);
   free(h_w);

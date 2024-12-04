@@ -35,20 +35,20 @@ if [ $? -ne 0 ]; then
 fi
 
 
-# Compile nccl_trial.cu with clang++
-echo "Compiling nccl_trial.cu..."
+# Compile simple_nn.cu with clang++
+echo "Compiling simple_nn.cu..."
 clang++-14 -std=c++11 -I../.. $INCLUDES2 --cuda-path=$CUDA_HOME --cuda-gpu-arch=sm_50 \
-    -L$CUDA_HOME/lib64 -save-temps -c nccl_trial.cu -lcudart_static -ldl -lrt -pthread || true
+    -L$CUDA_HOME/lib64 -save-temps -c simple_nn.cu -lcudart_static -ldl -lrt -pthread || true
 
 # Translate kernel and host
 echo "Translating kernel and host..."
-$CuPBoP_PATH/build/compilation/kernelTranslator nccl_trial-cuda-nvptx64-nvidia-cuda-sm_50.bc kernel.bc
+$CuPBoP_PATH/build/compilation/kernelTranslator simple_nn-cuda-nvptx64-nvidia-cuda-sm_50.bc kernel.bc
 if [ $? -ne 0 ]; then
     echo "Kernel translation failed."
     exit 1
 fi
 
-$CuPBoP_PATH/build/compilation/hostTranslator nccl_trial-host-x86_64-pc-linux-gnu.bc host.bc
+$CuPBoP_PATH/build/compilation/hostTranslator simple_nn-host-x86_64-pc-linux-gnu.bc host.bc
 if [ $? -ne 0 ]; then
     echo "Host translation failed."
     exit 1
@@ -70,7 +70,7 @@ fi
 
 # Link the executable
 echo "Linking the final executable..."
-g++ -o nccl_trial -fPIC -no-pie $INCLUDES2 -I$CuPBoP_PATH/runtime/threadPool/include \
+g++ -o simple_nn -fPIC -no-pie $INCLUDES2 -I$CuPBoP_PATH/runtime/threadPool/include \
     -L$CuPBoP_PATH/build/runtime -L$CuPBoP_PATH/build/runtime/threadPool \
     kernel.o host.o nccl.o cuda_wrapper.o -lCPUruntime -lthreadPool -lpthread $LIBS2
 if [ $? -ne 0 ]; then
@@ -80,7 +80,7 @@ fi
 
 # Run the program using mpirun
 echo "Running the program with mpirun..."
-mpirun -np 4 ./nccl_trial
+mpirun -np 4 ./simple_nn
 if [ $? -ne 0 ]; then
     echo "Execution failed."
     exit 1
