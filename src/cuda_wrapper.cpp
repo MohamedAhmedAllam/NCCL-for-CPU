@@ -1,3 +1,4 @@
+#include "comm.h"
 #include "cuda_wrapper.h"
 
 #include <cstdlib>

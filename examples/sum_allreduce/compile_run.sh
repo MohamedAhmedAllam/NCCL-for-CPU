@@ -19,12 +19,12 @@ LIBS2="-lmpi_cxx -lmpi"
 
 # Compile the CUDA wrapper
 
-echo "Compiling cuda_wrapper.cpp..."
-$CXX $CXXFLAGS $INCLUDES -c $NCCLCPU_PATH/src/cuda_wrapper.cpp -o cuda_wrapper.o
-if [ $? -ne 0 ]; then
-    echo "Failed to compile cuda_wrapper.cpp"
-    exit 1
-fi
+#echo "Compiling cuda_wrapper.cpp..."
+#$CXX $CXXFLAGS $INCLUDES -c $NCCLCPU_PATH/src/cuda_wrapper.cpp -o cuda_wrapper.o
+#if [ $? -ne 0 ]; then
+#    echo "Failed to compile cuda_wrapper.cpp"
+#    exit 1
+#fi
 
 
 echo "Compiling nccl.cpp..."
@@ -72,7 +72,7 @@ fi
 echo "Linking the final executable..."
 g++ -o nccl_trial -fPIC -no-pie $INCLUDES2 -I$CuPBoP_PATH/runtime/threadPool/include \
     -L$CuPBoP_PATH/build/runtime -L$CuPBoP_PATH/build/runtime/threadPool \
-    kernel.o host.o nccl.o cuda_wrapper.o -lCPUruntime -lthreadPool -lpthread $LIBS2
+    kernel.o host.o nccl.o -lCPUruntime -lthreadPool -lpthread $LIBS2
 if [ $? -ne 0 ]; then
     echo "Linking failed."
     exit 1

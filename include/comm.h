@@ -8,4 +8,10 @@ struct ncclComm {
     int d = 0;
 };
 
+struct CUstream_st{
+    MPI_Request *request;
+    int d = 0;
+};
+
+
 #endif

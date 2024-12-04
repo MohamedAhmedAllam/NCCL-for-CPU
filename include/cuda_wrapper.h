@@ -4,18 +4,18 @@
 #include "mpi.h"
 #include <cuda_runtime.h>
 
-struct CUstream_st{
-    MPI_Request *request;
-    int d = 0;
-};
+//struct CUstream_st{
+//    MPI_Request *request;
+//    int d = 0;
+//};
 
 //typedef struct CUstream_st *cudaStream_t; //do I need this ?
 
 // Wrapper for cudaMalloc
-//cudaError_t cudaMalloc(void **devPtr, size_t size);
+cudaError_t cudaMalloc(void **devPtr, size_t size);
 
 // Wrapper for cudaFree
-//cudaError_t cudaFree(void *devPtr);
+cudaError_t cudaFree(void *devPtr);
 
 //Wrapper for Cuda Stream Creation
 cudaError_t cudaStreamCreate(cudaStream_t *stream);

@@ -1,7 +1,7 @@
 #include "comm.h"
 #include "nccl.h"
 #include <cstdlib>
-#include "cuda_wrapper.h"
+//#include "cuda_wrapper.h"
 //#include <cstring>
 //#include <cstdio>
 #include "mpi.h"

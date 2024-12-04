@@ -1,7 +1,6 @@
 // nccl_allgather_example.cpp (Data Parallelism)
 #include <stdio.h>
 #include "nccl.h"
-#include "cuda_wrapper.h"
 #include "mpi.h"
 #include <unistd.h>
 #include <stdint.h>
