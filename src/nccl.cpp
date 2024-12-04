@@ -121,7 +121,14 @@ ncclResult_t  ncclAllReduce(const void* sendbuff, void* recvbuff, size_t count,
         return ncclInvalidArgument;  // Sure of this ? it should return an NCCL return
     }
 
-    int res = MPI_Iallreduce(sendbuff, recvbuff, count, datatype_mpi, op_mpi, comm->mpiComm, stream->request);
+    int res;
+    if (sendbuff == recvbuff){
+        //TODO: DO I NEED TO DO THIS FOR THE REST?
+        res = MPI_Iallreduce(MPI_IN_PLACE, recvbuff, count, datatype_mpi, op_mpi, comm->mpiComm, stream->request);
+    }
+    else{
+        res = MPI_Iallreduce(sendbuff, recvbuff, count, datatype_mpi, op_mpi, comm->mpiComm, stream->request);        
+    }
     if (res != MPI_SUCCESS){
         return ncclSystemError;
     }
